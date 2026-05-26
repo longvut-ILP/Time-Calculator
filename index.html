@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <style>
+        table { border-collapse: collapse; margin: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        input { width: 100%; padding: 5px; box-sizing: border-box; }
+    </style>
+</head>
 <body>
     <h2>Terminal: FOST</h2>
     <table>
@@ -15,6 +23,18 @@
             <td><input type="number" id="batch-1" oninput="runCalc(1)" placeholder="500"></td>
             <td id="end-1">-</td>
         </tr>
+        <tr>
+            <td><input type="text" id="start-2" oninput="runCalc(2)" placeholder="08:00"></td>
+            <td><input type="number" id="rate-2" oninput="runCalc(2)" placeholder="100"></td>
+            <td><input type="number" id="batch-2" oninput="runCalc(2)" placeholder="500"></td>
+            <td id="end-2">-</td>
+        </tr>
+        <tr>
+            <td><input type="text" id="start-3" oninput="runCalc(3)" placeholder="08:00"></td>
+            <td><input type="number" id="rate-3" oninput="runCalc(3)" placeholder="100"></td>
+            <td><input type="number" id="batch-3" oninput="runCalc(3)" placeholder="500"></td>
+            <td id="end-3">-</td>
+        </tr>
     </table>
 
     <script>
@@ -27,9 +47,9 @@
 
             console.log(`Inputs: Start=${startInput}, Rate=${rate}, Batch=${batch}`);
 
-            // 2. Validate
-            if (!startInput.includes(':') || isNaN(rate) || isNaN(batch) || rate <= 0) {
-                endCell.innerText = "Waiting...";
+            // 2. Validate - only calculate if ALL fields are filled and valid
+            if (!startInput || !startInput.includes(':') || isNaN(rate) || isNaN(batch) || rate <= 0 || batch <= 0) {
+                endCell.innerText = "-";
                 return;
             }
 
@@ -38,6 +58,11 @@
             const h = parseInt(parts[0]);
             const m = parseInt(parts[1]);
             
+            if (isNaN(h) || isNaN(m)) {
+                endCell.innerText = "-";
+                return;
+            }
+
             const startTotalMins = (h * 60) + m;
             const durationMins = batch / rate;
             const endTotalMins = startTotalMins + durationMins;
