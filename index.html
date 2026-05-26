@@ -1,68 +1,55 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-        input { width: 90%; border: none; text-align: center; }
-    </style>
-</head>
 <body>
-
-    <h2>Terminal Time Calculator</h2>
-
-    <div id="calculator-container"></div>
+    <h2>Terminal: FOST</h2>
+    <table>
+        <tr>
+            <th>Start Time (HH:MM)</th>
+            <th>Rate</th>
+            <th>Batch</th>
+            <th>End Time</th>
+        </tr>
+        <tr>
+            <td><input type="text" id="start-1" oninput="runCalc(1)" placeholder="08:00"></td>
+            <td><input type="number" id="rate-1" oninput="runCalc(1)" placeholder="100"></td>
+            <td><input type="number" id="batch-1" oninput="runCalc(1)" placeholder="500"></td>
+            <td id="end-1">-</td>
+        </tr>
+    </table>
 
     <script>
-        // The core calculation logic
-        function calculate(row, term) {
-            const startVal = document.getElementById(`start-${term}-${row}`).value;
-            const rate = parseFloat(document.getElementById(`rate-${term}-${row}`).value);
-            const batch = parseFloat(document.getElementById(`batch-${term}-${row}`).value);
+        function runCalc(row) {
+            // 1. Get elements
+            const startInput = document.getElementById(`start-${row}`).value;
+            const rate = parseFloat(document.getElementById(`rate-${row}`).value);
+            const batch = parseFloat(document.getElementById(`batch-${row}`).value);
+            const endCell = document.getElementById(`end-${row}`);
+
+            console.log(`Inputs: Start=${startInput}, Rate=${rate}, Batch=${batch}`);
+
+            // 2. Validate
+            if (!startInput.includes(':') || isNaN(rate) || isNaN(batch) || rate <= 0) {
+                endCell.innerText = "Waiting...";
+                return;
+            }
+
+            // 3. Logic: Total Minutes Calculation
+            const parts = startInput.split(':');
+            const h = parseInt(parts[0]);
+            const m = parseInt(parts[1]);
             
-            const durCell = document.getElementById(`dur-${term}-${row}`);
-            const endCell = document.getElementById(`end-${term}-${row}`);
+            const startTotalMins = (h * 60) + m;
+            const durationMins = (batch / rate) * 60;
+            const endTotalMins = startTotalMins + durationMins;
 
-            if (startVal.includes(':') && !isNaN(rate) && !isNaN(batch) && rate > 0) {
-                const [h, m] = startVal.split(':').map(Number);
-                const duration = batch / rate;
-                
-                // Show duration
-                durCell.innerText = duration.toFixed(2);
-
-                // Calculate End Time
-                const endMinutes = (h * 60) + m + (duration * 60);
-                const endH = Math.floor(endMinutes / 60) % 24;
-                const endM = Math.floor(endMinutes % 60);
-                const endStr = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
-                
-                endCell.innerText = endStr;
-
-                // Pass to next row
-                if (row < 10) {
-                    const nextStart = document.getElementById(`start-${term}-${row + 1}`);
-                    if (nextStart) nextStart.value = endStr;
-                }
-            }
+            // 4. Format Output
+            const endH = Math.floor(endTotalMins / 60) % 24;
+            const endM = Math.round(endTotalMins % 60);
+            
+            const result = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
+            endCell.innerText = result;
+            console.log(`Result: ${result}`);
         }
-
-        // Build the tables
-        const container = document.getElementById('calculator-container');
-        ['FOST', 'MGD1', 'MGD2', 'MGDR3'].forEach(term => {
-            let html = `<h3>${term}</h3><table><tr><th>Start Time</th><th>Rate</th><th>Batch</th><th>Dur</th><th>End Time</th></tr>`;
-            for(let i=1; i<=10; i++) {
-                html += `<tr>
-                    <td><input type="text" id="start-${term}-${i}" oninput="calculate(${i}, '${term}')" placeholder="HH:MM"></td>
-                    <td><input type="number" id="rate-${term}-${i}" oninput="calculate(${i}, '${term}')" placeholder="0"></td>
-                    <td><input type="number" id="batch-${term}-${i}" oninput="calculate(${i}, '${term}')" placeholder="0"></td>
-                    <td id="dur-${term}-${i}">-</td>
-                    <td id="end-${term}-${i}">-</td>
-                </tr>`;
-            }
-            html += `</table>`;
-            container.innerHTML += html;
-        });
     </script>
 </body>
 </html>
