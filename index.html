@@ -39,7 +39,7 @@
             const m = parseInt(parts[1]);
             
             const startTotalMins = (h * 60) + m;
-            const durationMins = (batch / rate) * 60;
+            const durationMins = batch / rate;
             const endTotalMins = startTotalMins + durationMins;
 
             // 4. Format Output
