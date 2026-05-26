@@ -2,62 +2,116 @@
 <html>
 <head>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-        input { width: 90%; border: none; text-align: center; }
+        :root {
+            --et-blue: #003366;
+            --et-light-blue: #e6f0fa;
+            --et-accent: #0056b3;
+            --text-dark: #333;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 40px; 
+            color: var(--text-dark);
+            background-color: #f4f7f9;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--et-blue);
+        }
+
+        .logo-placeholder {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--et-blue);
+            margin-right: 20px;
+        }
+
+        h2 { color: var(--et-blue); }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 40px; 
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th { 
+            background-color: var(--et-blue); 
+            color: white; 
+            padding: 12px; 
+            font-weight: 600;
+        }
+
+        td { 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            text-align: center; 
+        }
+
+        tr:nth-child(even) { background-color: var(--et-light-blue); }
+
+        input { 
+            width: 85%; 
+            padding: 5px;
+            border: 1px solid #ccc; 
+            border-radius: 4px;
+            text-align: center; 
+        }
+
+        input:focus { outline: 2px solid var(--et-accent); }
     </style>
 </head>
 <body>
 
-    <h2>Terminal Time Calculator</h2>
+    <div class="header">
+        <div class="logo-placeholder">ENERGY TRANSFER</div>
+        <h2>Terminal Operations Calculator</h2>
+    </div>
 
     <div id="calculator-container"></div>
 
     <script>
-        // The core calculation logic
-        function calculate(row, term) {
-            const startVal = document.getElementById(`start-${term}-${row}`).value;
-            const rate = parseFloat(document.getElementById(`rate-${term}-${row}`).value);
-            const batch = parseFloat(document.getElementById(`batch-${term}-${row}`).value);
+        function calculateRow(inputElement) {
+            const row = inputElement.closest('tr');
+            const startVal = row.querySelector('.st').value;
+            const rate = parseFloat(row.querySelector('.rt').value);
+            const batch = parseFloat(row.querySelector('.bt').value);
             
-            const durCell = document.getElementById(`dur-${term}-${row}`);
-            const endCell = document.getElementById(`end-${term}-${row}`);
+            const durCell = row.querySelector('.dur');
+            const endCell = row.querySelector('.et');
 
             if (startVal.includes(':') && !isNaN(rate) && !isNaN(batch) && rate > 0) {
                 const [h, m] = startVal.split(':').map(Number);
-                const duration = batch / rate;
+                const durationHours = batch / rate;
                 
-                // Show duration
-                durCell.innerText = duration.toFixed(2);
+                durCell.innerText = durationHours.toFixed(2);
 
-                // Calculate End Time
-                const endMinutes = (h * 60) + m + (duration * 60);
-                const endH = Math.floor(endMinutes / 60) % 24;
-                const endM = Math.floor(endMinutes % 60);
-                const endStr = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
+                const totalMins = (h * 60) + m + (durationHours * 60);
+                const endH = Math.floor(totalMins / 60) % 24;
+                const endM = Math.round(totalMins % 60);
                 
-                endCell.innerText = endStr;
-
-                // Pass to next row
-                if (row < 10) {
-                    const nextStart = document.getElementById(`start-${term}-${row + 1}`);
-                    if (nextStart) nextStart.value = endStr;
-                }
+                endCell.innerText = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
             }
         }
 
-        // Build the tables
         const container = document.getElementById('calculator-container');
         ['FOST', 'MGD1', 'MGD2', 'MGDR3'].forEach(term => {
-            let html = `<h3>${term}</h3><table><tr><th>Start Time</th><th>Rate</th><th>Batch</th><th>Dur</th><th>End Time</th></tr>`;
+            let html = `<h3>${term} Terminal</h3><table><tr><th>Start Time</th><th>Rate (Bph)</th><th>Batch (Bbl)</th><th>Duration (Hr)</th><th>End Time</th></tr>`;
             for(let i=1; i<=10; i++) {
                 html += `<tr>
-                    <td><input type="text" id="start-${term}-${i}" oninput="calculate(${i}, '${term}')" placeholder="HH:MM"></td>
-                    <td><input type="number" id="rate-${term}-${i}" oninput="calculate(${i}, '${term}')" placeholder="0"></td>
-                    <td><input type="number" id="batch-${term}-${i}" oninput="calculate(${i}, '${term}')" placeholder="0"></td>
-                    <td id="dur-${term}-${i}">-</td>
-                    <td id="end-${term}-${i}">-</td>
+                    <td><input type="text" class="st" oninput="calculateRow(this)" placeholder="HH:MM"></td>
+                    <td><input type="number" class="rt" oninput="calculateRow(this)" placeholder="0"></td>
+                    <td><input type="number" class="bt" oninput="calculateRow(this)" placeholder="0"></td>
+                    <td class="dur">-</td>
+                    <td class="et">-</td>
                 </tr>`;
             }
             html += `</table>`;
