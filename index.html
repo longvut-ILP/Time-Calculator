@@ -2,38 +2,20 @@
 <html>
 <head>
     <style>
-        :root {
-            --et-blue: #003366;
-            --et-light-blue: #e6f0fa;
-            --et-accent: #0056b3;
-            --text-dark: #333;
-        }
-
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 40px; 
-            background-color: #f4f7f9;
-        }
-
+        :root { --et-blue: #003366; --et-light-blue: #e6f0fa; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f4f7f9; }
         .header { display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid var(--et-blue); }
         .logo-placeholder { font-size: 24px; font-weight: bold; color: var(--et-blue); margin-right: 20px; }
         
-        .table-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
-        .reset-btn { 
-            background-color: #d9534f; color: white; border: none; padding: 5px 15px; 
-            border-radius: 4px; cursor: pointer; font-size: 12px;
-        }
-        .reset-btn:hover { background-color: #c9302c; }
-
-        table { 
-            width: 100%; border-collapse: collapse; background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;
-        }
-        th { background-color: var(--et-blue); color: white; padding: 12px; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 40px; }
+        th { background-color: var(--et-blue); color: white; padding: 12px; font-size: 13px; }
         td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        tr:nth-child(even) { background-color: var(--et-light-blue); }
-
-        input { width: 85%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        input { width: 65px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        
+        .reset-btn { background-color: #d9534f; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; }
+        .split-box { display: none; margin-top: 8px; padding: 8px; border: 1px dashed var(--et-blue); background: #fdfdfd; font-size: 12px; }
+        .split-box.visible { display: block; }
+        button { cursor: pointer; padding: 5px; background: var(--et-blue); color: white; border: none; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -46,60 +28,91 @@
     <div id="calculator-container"></div>
 
     <script>
-        function calculateRow(inputElement) {
-            const row = inputElement.closest('tr');
-            const startVal = row.querySelector('.st').value;
-            const rate = parseFloat(row.querySelector('.rt').value);
-            const batch = parseFloat(row.querySelector('.bt').value);
-            
-            const durCell = row.querySelector('.dur');
-            const endCell = row.querySelector('.et');
+        function toMins(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return (h * 60) + m;
+        }
 
-            if (startVal.includes(':') && !isNaN(rate) && !isNaN(batch) && rate > 0) {
-                const [h, m] = startVal.split(':').map(Number);
-                const durationHours = batch / rate;
-                
-                durCell.innerText = durationHours.toFixed(2);
-                const totalMins = (h * 60) + m + (durationHours * 60);
-                const endH = Math.floor(totalMins / 60) % 24;
-                const endM = Math.round(totalMins % 60);
-                
-                const endStr = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
-                endCell.innerText = endStr;
+        function toStr(totalMins) {
+            const h = Math.floor(totalMins / 60) % 24;
+            const m = Math.round(totalMins % 60);
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        function calculateRow(el) {
+            const row = el.closest('tr');
+            const st = row.querySelector('.st').value;
+            const r1 = parseFloat(row.querySelector('.r1').value) || 0;
+            const totalGoal = parseFloat(row.querySelector('.goal').value) || 0;
+            const isSplit = row.querySelector('.split-box').classList.contains('visible');
+            
+            if (st.includes(':')) {
+                let finalEndStr = "";
+
+                if (!isSplit) {
+                    const dur = (r1 > 0) ? (totalGoal / r1) : 0;
+                    finalEndStr = toStr(toMins(st) + (dur * 60));
+                    row.querySelector('.et').innerText = finalEndStr;
+                } else {
+                    const splitTimeStr = row.querySelector('.split-time').value;
+                    const r2 = parseFloat(row.querySelector('.r2').value) || 0;
+                    
+                    if (splitTimeStr.includes(':')) {
+                        const startMins = toMins(st);
+                        const splitMins = toMins(splitTimeStr);
+                        const elapsedMins = splitMins - startMins;
+                        
+                        const batchDone = (elapsedMins / 60) * r1;
+                        const batchRem = totalGoal - batchDone;
+                        const dur2 = (r2 > 0) ? (batchRem / r2) : 0;
+                        finalEndStr = toStr(splitMins + (dur2 * 60));
+                        row.querySelector('.et').innerText = finalEndStr;
+                    }
+                }
 
                 const nextRow = row.nextElementSibling;
-                if (nextRow) {
-                    const nextStartInput = nextRow.querySelector('.st');
-                    nextStartInput.value = endStr;
-                    calculateRow(nextStartInput);
+                if (nextRow && nextRow.querySelector('.st')) {
+                    nextRow.querySelector('.st').value = finalEndStr;
+                    calculateRow(nextRow.querySelector('.st'));
                 }
             }
         }
 
-        function resetTable(button) {
-            const container = button.parentElement.nextElementSibling;
-            const inputs = container.querySelectorAll('input');
-            const cells = container.querySelectorAll('.dur, .et');
-            
-            inputs.forEach(input => input.value = '');
-            cells.forEach(cell => cell.innerText = '-');
+        function toggleSplit(btn) {
+            const row = btn.closest('tr');
+            const box = row.querySelector('.split-box');
+            box.classList.toggle('visible');
+            btn.innerText = box.classList.contains('visible') ? "Remove Split" : "Split Rate";
+            calculateRow(btn);
+        }
+
+        function resetTable(btn) {
+            const container = btn.parentElement.nextElementSibling;
+            container.querySelectorAll('input').forEach(i => i.value = '');
+            container.querySelectorAll('.et').forEach(c => c.innerText = '-');
         }
 
         const container = document.getElementById('calculator-container');
         ['FOST', 'MGD1', 'MGD2', 'MGDR3'].forEach(term => {
             container.innerHTML += `
-                <div class="table-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3>${term} Terminal</h3>
                     <button class="reset-btn" onclick="resetTable(this)">Reset Table</button>
                 </div>
                 <table>
-                    <tr><th>Start Time</th><th>Rate (Bph)</th><th>Batch (Bbl)</th><th>Duration (Hr)</th><th>End Time</th></tr>
+                    <tr><th>Start</th><th>Rate 1 (Bph)</th><th>Total Bbl</th><th>End</th><th>Options</th></tr>
                     ${Array.from({length: 10}, () => `<tr>
                         <td><input type="text" class="st" oninput="calculateRow(this)" placeholder="HH:MM"></td>
-                        <td><input type="number" class="rt" oninput="calculateRow(this)" placeholder="0"></td>
-                        <td><input type="number" class="bt" oninput="calculateRow(this)" placeholder="0"></td>
-                        <td class="dur">-</td>
+                        <td><input type="number" class="r1" oninput="calculateRow(this)" placeholder="R1"></td>
+                        <td><input type="number" class="goal" oninput="calculateRow(this)" placeholder="Total"></td>
                         <td class="et">-</td>
+                        <td>
+                            <button onclick="toggleSplit(this)">Split Rate</button>
+                            <div class="split-box">
+                                Split Time: <input type="text" class="split-time" oninput="calculateRow(this)" placeholder="HH:MM"><br>
+                                Rate 2: <input type="number" class="r2" oninput="calculateRow(this)" placeholder="R2">
+                            </div>
+                        </td>
                     </tr>`).join('')}
                 </table>`;
         });
