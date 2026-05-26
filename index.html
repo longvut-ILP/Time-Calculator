@@ -12,61 +12,28 @@
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             padding: 40px; 
-            color: var(--text-dark);
             background-color: #f4f7f9;
         }
 
-        .header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid var(--et-blue);
+        .header { display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid var(--et-blue); }
+        .logo-placeholder { font-size: 24px; font-weight: bold; color: var(--et-blue); margin-right: 20px; }
+        
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
+        .reset-btn { 
+            background-color: #d9534f; color: white; border: none; padding: 5px 15px; 
+            border-radius: 4px; cursor: pointer; font-size: 12px;
         }
-
-        .logo-placeholder {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--et-blue);
-            margin-right: 20px;
-        }
-
-        h2 { color: var(--et-blue); }
+        .reset-btn:hover { background-color: #c9302c; }
 
         table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-bottom: 40px; 
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
+            width: 100%; border-collapse: collapse; background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;
         }
-
-        th { 
-            background-color: var(--et-blue); 
-            color: white; 
-            padding: 12px; 
-            font-weight: 600;
-        }
-
-        td { 
-            border: 1px solid #ddd; 
-            padding: 10px; 
-            text-align: center; 
-        }
-
+        th { background-color: var(--et-blue); color: white; padding: 12px; }
+        td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         tr:nth-child(even) { background-color: var(--et-light-blue); }
 
-        input { 
-            width: 85%; 
-            padding: 5px;
-            border: 1px solid #ccc; 
-            border-radius: 4px;
-            text-align: center; 
-        }
-
-        input:focus { outline: 2px solid var(--et-accent); }
+        input { width: 85%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
     </style>
 </head>
 <body>
@@ -93,29 +60,48 @@
                 const durationHours = batch / rate;
                 
                 durCell.innerText = durationHours.toFixed(2);
-
                 const totalMins = (h * 60) + m + (durationHours * 60);
                 const endH = Math.floor(totalMins / 60) % 24;
                 const endM = Math.round(totalMins % 60);
                 
-                endCell.innerText = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
+                const endStr = String(endH).padStart(2, '0') + ":" + String(endM).padStart(2, '0');
+                endCell.innerText = endStr;
+
+                const nextRow = row.nextElementSibling;
+                if (nextRow) {
+                    const nextStartInput = nextRow.querySelector('.st');
+                    nextStartInput.value = endStr;
+                    calculateRow(nextStartInput);
+                }
             }
+        }
+
+        function resetTable(button) {
+            const container = button.parentElement.nextElementSibling;
+            const inputs = container.querySelectorAll('input');
+            const cells = container.querySelectorAll('.dur, .et');
+            
+            inputs.forEach(input => input.value = '');
+            cells.forEach(cell => cell.innerText = '-');
         }
 
         const container = document.getElementById('calculator-container');
         ['FOST', 'MGD1', 'MGD2', 'MGDR3'].forEach(term => {
-            let html = `<h3>${term} Terminal</h3><table><tr><th>Start Time</th><th>Rate (Bph)</th><th>Batch (Bbl)</th><th>Duration (Hr)</th><th>End Time</th></tr>`;
-            for(let i=1; i<=10; i++) {
-                html += `<tr>
-                    <td><input type="text" class="st" oninput="calculateRow(this)" placeholder="HH:MM"></td>
-                    <td><input type="number" class="rt" oninput="calculateRow(this)" placeholder="0"></td>
-                    <td><input type="number" class="bt" oninput="calculateRow(this)" placeholder="0"></td>
-                    <td class="dur">-</td>
-                    <td class="et">-</td>
-                </tr>`;
-            }
-            html += `</table>`;
-            container.innerHTML += html;
+            container.innerHTML += `
+                <div class="table-header">
+                    <h3>${term} Terminal</h3>
+                    <button class="reset-btn" onclick="resetTable(this)">Reset Table</button>
+                </div>
+                <table>
+                    <tr><th>Start Time</th><th>Rate (Bph)</th><th>Batch (Bbl)</th><th>Duration (Hr)</th><th>End Time</th></tr>
+                    ${Array.from({length: 10}, () => `<tr>
+                        <td><input type="text" class="st" oninput="calculateRow(this)" placeholder="HH:MM"></td>
+                        <td><input type="number" class="rt" oninput="calculateRow(this)" placeholder="0"></td>
+                        <td><input type="number" class="bt" oninput="calculateRow(this)" placeholder="0"></td>
+                        <td class="dur">-</td>
+                        <td class="et">-</td>
+                    </tr>`).join('')}
+                </table>`;
         });
     </script>
 </body>
