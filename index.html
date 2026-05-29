@@ -39,6 +39,24 @@
             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         }
 
+        function getPrevRemaining(row) {
+            const prevRow = row.previousElementSibling;
+            if (prevRow && prevRow.querySelector('.st')) {
+                const prevRemainText = prevRow.querySelector('.rem').innerText;
+                return prevRemainText !== '-' ? parseFloat(prevRemainText) : 0;
+            }
+            return 0;
+        }
+
+        function getPrevRate2(row) {
+            const prevRow = row.previousElementSibling;
+            if (prevRow && prevRow.querySelector('.st')) {
+                const prevR2 = parseFloat(prevRow.querySelector('.r2').value) || 0;
+                return prevR2;
+            }
+            return 0;
+        }
+
         function calculateRow(el) {
             const row = el.closest('tr');
             const st = row.querySelector('.st').value;
@@ -53,6 +71,7 @@
                     const dur = (r1 > 0) ? (totalGoal / r1) : 0;
                     finalEndStr = toStr(toMins(st) + (dur * 60));
                     row.querySelector('.et').innerText = finalEndStr;
+                    row.querySelector('.rem').innerText = '-';
                 } else {
                     const splitTimeStr = row.querySelector('.split-time').value;
                     const r2 = parseFloat(row.querySelector('.r2').value) || 0;
@@ -62,8 +81,19 @@
                         const splitMins = toMins(splitTimeStr);
                         const elapsedMins = splitMins - startMins;
                         
-                        const batchDone = (elapsedMins / 60) * r1;
-                        const batchRem = totalGoal - batchDone;
+                        // Get the total to use: either from previous row's remaining, or current row's input
+                        const prevRemaining = getPrevRemaining(row);
+                        const actualTotal = prevRemaining > 0 ? prevRemaining : totalGoal;
+                        
+                        // Get the rate to use: either from previous row's r2 (if split was enabled on prev row), or current row's r1
+                        const prevRate2 = getPrevRate2(row);
+                        const actualRate = prevRemaining > 0 ? prevRate2 : r1;
+                        
+                        const batchDone = (elapsedMins / 60) * actualRate;
+                        const batchRem = actualTotal - batchDone;
+                        
+                        row.querySelector('.rem').innerText = batchRem.toFixed(2);
+                        
                         const dur2 = (r2 > 0) ? (batchRem / r2) : 0;
                         finalEndStr = toStr(splitMins + (dur2 * 60));
                         row.querySelector('.et').innerText = finalEndStr;
@@ -78,6 +108,13 @@
                     if (currentR1) {
                         nextRow.querySelector('.r1').value = currentR1;
                     }
+                    // Prefill Total Bbl with remaining from current row if split is enabled
+                    if (isSplit) {
+                        const remainText = row.querySelector('.rem').innerText;
+                        if (remainText !== '-') {
+                            nextRow.querySelector('.goal').value = remainText;
+                        }
+                    }
                     calculateRow(nextRow.querySelector('.st'));
                 }
             }
@@ -88,6 +125,12 @@
             const box = row.querySelector('.split-box');
             box.classList.toggle('visible');
             btn.innerText = box.classList.contains('visible') ? "Remove Split" : "Split Rate";
+            
+            if (!box.classList.contains('visible')) {
+                // When split is removed, clear the Remain BBL
+                row.querySelector('.rem').innerText = '-';
+            }
+            
             calculateRow(btn);
         }
 
@@ -95,6 +138,7 @@
             const container = btn.parentElement.nextElementSibling;
             container.querySelectorAll('input').forEach(i => i.value = '');
             container.querySelectorAll('.et').forEach(c => c.innerText = '-');
+            container.querySelectorAll('.rem').forEach(c => c.innerText = '-');
         }
 
         const container = document.getElementById('calculator-container');
@@ -105,12 +149,13 @@
                     <button class="reset-btn" onclick="resetTable(this)">Reset Table</button>
                 </div>
                 <table>
-                    <tr><th>Start</th><th>Rate 1 (Bph)</th><th>Total Bbl</th><th>End</th><th>Options</th></tr>
+                    <tr><th>Start</th><th>Rate 1 (Bph)</th><th>Total Bbl</th><th>End</th><th>Remain Bbl</th><th>Options</th></tr>
                     ${Array.from({length: 10}, () => `<tr>
                         <td><input type="text" class="st" oninput="calculateRow(this)" placeholder="HH:MM"></td>
                         <td><input type="number" class="r1" oninput="calculateRow(this)" placeholder="R1"></td>
                         <td><input type="number" class="goal" oninput="calculateRow(this)" placeholder="Total"></td>
                         <td class="et">-</td>
+                        <td class="rem">-</td>
                         <td>
                             <button onclick="toggleSplit(this)">Split Rate</button>
                             <div class="split-box">
