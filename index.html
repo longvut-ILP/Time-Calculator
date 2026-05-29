@@ -73,6 +73,11 @@
                 const nextRow = row.nextElementSibling;
                 if (nextRow && nextRow.querySelector('.st')) {
                     nextRow.querySelector('.st').value = finalEndStr;
+                    // Prefill Rate 1 from the current row
+                    const currentR1 = row.querySelector('.r1').value;
+                    if (currentR1) {
+                        nextRow.querySelector('.r1').value = currentR1;
+                    }
                     calculateRow(nextRow.querySelector('.st'));
                 }
             }
